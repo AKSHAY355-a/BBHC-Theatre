@@ -1,4 +1,4 @@
-# 🎬 BBHC Theater - Streaming Website
+# 🎬 BBHC Theater - Streaming Website [PROTOTYPE]
 
 A modern, responsive streaming platform for movies and series with dark-themed UI and Telegram-based content delivery.
 
