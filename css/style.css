@@ -27,6 +27,12 @@ body {
     overflow-x: hidden;
 }
 
+/* Prevent background scroll when sidebar/modal is open */
+body.no-scroll {
+    overflow: hidden;
+    height: 100vh;
+}
+
 /* Sidebar Navigation */
 .sidebar {
     position: fixed;
@@ -51,6 +57,10 @@ body {
     align-items: center;
     padding: 24px 20px;
     border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    z-index: 5;
 }
 
 .sidebar-header h2 {
@@ -92,6 +102,10 @@ body {
     color: var(--text-secondary);
     margin-bottom: 12px;
     letter-spacing: 1px;
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    padding-top: 8px;
 }
 
 .nav-section ul {
