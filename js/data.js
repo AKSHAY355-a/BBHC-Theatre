@@ -316,7 +316,7 @@ const contentDatabase = [
     {
         id: "series-008",
         title: "Black Mirror",
-        poster_url: "https://image.tmdb.org/t/p/w500/5UaYsGZOFhjFDwQix3L0hyRT9qI.jpg",
+        poster_url: "https://tinyurl.com/2s3nrrd2",
         year: 2011,
         genre: ["Sci-Fi", "Thriller", "Drama"],
         imdb_rating: 8.7,
