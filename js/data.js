@@ -1,4 +1,4 @@
-// BBHC Theater - Sample Movie & Series Data
+// BBHC Theatre - Sample Movie & Series Data
 // Following the specified schemas for Movie/Series Card Object and Detailed View
 
 const contentDatabase = [

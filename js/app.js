@@ -1,7 +1,7 @@
-// BBHC Theater - Main Application Script
+// BBHC Theatre - Main Application Script
 // Handles UI interactions, content filtering, search, and video playback
 
-class BBHCTheater {
+class BBHCTheatre {
     constructor() {
         this.allContent = [];
         this.filteredContent = [];
@@ -13,7 +13,7 @@ class BBHCTheater {
     }
 
     async init() {
-        console.log('[BBHC] Initializing theater...');
+    console.log('[BBHC] Initializing theatre...');
         
         // Load content from database
         this.allContent = window.contentDatabase || [];
@@ -31,7 +31,7 @@ class BBHCTheater {
         // Render initial content
         this.renderContent();
         
-        console.log('[BBHC] ✓ Theater ready');
+    console.log('[BBHC] ✓ Theatre ready');
     }
 
     setupEventListeners() {
@@ -439,10 +439,10 @@ class BBHCTheater {
     }
 }
 
-// Initialize theater when DOM is ready
+// Initialize theatre when DOM is ready
 let theater;
 document.addEventListener('DOMContentLoaded', () => {
-    theater = new BBHCTheater();
+    theater = new BBHCTheatre();
 });
 
 // Make theater globally accessible for debugging

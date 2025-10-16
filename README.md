@@ -1,4 +1,4 @@
-# 🎬 BBHC Theater - Streaming Website [PROTOTYPE]
+# 🎬 BBHC Theatre - Streaming Website [PROTOTYPE]
 
 A modern, responsive streaming platform for movies and series with dark-themed UI and Telegram-based content delivery.
 
@@ -63,7 +63,7 @@ A modern, responsive streaming platform for movies and series with dark-themed U
 ## 📁 Project Structure
 
 ```
-BBHC-Theater/
+BBHC-Theatre/
 ├── index.html              # Main HTML structure
 ├── css/
 │   └── style.css          # Dark theme styles & animations

@@ -1,4 +1,4 @@
-// BBHC Theater - Telegram Backend Integration
+// BBHC Theatre - Telegram Backend Integration
 // Handles content delivery via Telegram with chunked loading support
 
 class TelegramContentLoader {
