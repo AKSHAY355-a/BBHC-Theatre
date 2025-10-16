@@ -635,11 +635,13 @@ body.no-scroll {
     font-size: 15px;
 }
 
-.modal-imdb {
+.modal-actions {
     margin-bottom: 24px;
+    display: flex;
+    gap: 12px;
 }
 
-.modal-imdb a {
+.modal-actions .imdb-link {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -653,8 +655,28 @@ body.no-scroll {
     transition: all 0.2s;
 }
 
-.modal-imdb a:hover {
+.modal-actions .imdb-link:hover {
     background: #ffd54f;
+    transform: translateY(-2px);
+}
+
+.modal-actions .download-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s;
+}
+
+.modal-actions .download-link:hover {
+    background: var(--hover-bg);
     transform: translateY(-2px);
 }
 

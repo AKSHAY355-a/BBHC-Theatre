@@ -326,6 +326,11 @@ class BBHCTheater {
         // Set IMDB link
         const imdbLink = document.getElementById('modalImdbLink');
         imdbLink.href = `https://www.imdb.com/title/${item.imdb_id}/`;
+
+        // Set Download link
+        const downloadLink = document.getElementById('modalDownloadLink');
+        downloadLink.href = item.streaming_url;
+        downloadLink.setAttribute('download', `${item.title.replace(/\s+/g, '_')}.mp4`);
         
         // Show modal
         const modal = document.getElementById('detailModal');
