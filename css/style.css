@@ -27,6 +27,12 @@ body {
     overflow-x: hidden;
 }
 
+/* Prevent background scroll when sidebar/modal is open */
+body.no-scroll {
+    overflow: hidden;
+    height: 100vh;
+}
+
 /* Sidebar Navigation */
 .sidebar {
     position: fixed;
@@ -51,6 +57,10 @@ body {
     align-items: center;
     padding: 24px 20px;
     border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    z-index: 5;
 }
 
 .sidebar-header h2 {
@@ -92,6 +102,10 @@ body {
     color: var(--text-secondary);
     margin-bottom: 12px;
     letter-spacing: 1px;
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    padding-top: 8px;
 }
 
 .nav-section ul {
@@ -645,11 +659,13 @@ body {
     font-size: 15px;
 }
 
-.modal-imdb {
+.modal-actions {
     margin-bottom: 24px;
+    display: flex;
+    gap: 12px;
 }
 
-.modal-imdb a {
+.modal-actions .imdb-link {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -663,8 +679,28 @@ body {
     transition: all 0.2s;
 }
 
-.modal-imdb a:hover {
+.modal-actions .imdb-link:hover {
     background: #ffd54f;
+    transform: translateY(-2px);
+}
+
+.modal-actions .download-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s;
+}
+
+.modal-actions .download-link:hover {
+    background: var(--hover-bg);
     transform: translateY(-2px);
 }
 

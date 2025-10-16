@@ -46,6 +46,15 @@
                     <li><a href="#" data-filter="year-2021" class="nav-link">2021</a></li>
                 </ul>
             </div>
+            <div class="nav-section">
+                <h3>Languages</h3>
+                <ul>
+                    <li><a href="#" data-filter="language-english" class="nav-link">English</a></li>
+                    <li><a href="#" data-filter="language-hindi" class="nav-link">Hindi</a></li>
+                    <li><a href="#" data-filter="language-korean" class="nav-link">Korean</a></li>
+                    <li><a href="#" data-filter="language-spanish" class="nav-link">Spanish</a></li>
+                </ul>
+            </div>
         </div>
     </nav>
 
@@ -137,9 +146,12 @@
                         <h3>Cast</h3>
                         <p id="modalCast"></p>
                     </div>
-                    <div class="modal-imdb">
-                        <a href="#" id="modalImdbLink" target="_blank" rel="noopener noreferrer">
+                    <div class="modal-actions">
+                        <a href="#" id="modalImdbLink" class="imdb-link" target="_blank" rel="noopener noreferrer">
                             <i class="fab fa-imdb"></i> View on IMDB
+                        </a>
+                        <a href="#" id="modalDownloadLink" class="download-link" download>
+                            <i class="fas fa-download"></i> Download
                         </a>
                     </div>
                     <button class="stream-btn" id="streamBtn">

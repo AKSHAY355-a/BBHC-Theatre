@@ -110,9 +110,11 @@ class BBHCTheater {
         if (show) {
             sidebar.classList.add('active');
             overlay.classList.add('active');
+            document.body.classList.add('no-scroll');
         } else {
             sidebar.classList.remove('active');
             overlay.classList.remove('active');
+            document.body.classList.remove('no-scroll');
         }
     }
 
@@ -147,6 +149,14 @@ class BBHCTheater {
             const year = parseInt(filter.replace('year-', ''));
             this.filteredContent = this.allContent.filter(item => item.year === year);
             this.updateCategoryTitle(year.toString());
+        } else if (filter.startsWith('language-')) {
+            const language = filter.replace('language-', '').toLowerCase();
+            this.filteredContent = this.allContent.filter(item => {
+                const itemLanguage = (item.language || 'english').toLowerCase();
+                return itemLanguage === language;
+            });
+            const title = language.charAt(0).toUpperCase() + language.slice(1);
+            this.updateCategoryTitle(title);
         }
         
         // Apply search if active
@@ -192,6 +202,10 @@ class BBHCTheater {
                 } else if (this.currentCategory.startsWith('year-')) {
                     const year = parseInt(this.currentCategory.replace('year-', ''));
                     matchesCategory = item.year === year;
+                } else if (this.currentCategory.startsWith('language-')) {
+                    const language = this.currentCategory.replace('language-', '').toLowerCase();
+                    const itemLanguage = (item.language || 'english').toLowerCase();
+                    matchesCategory = itemLanguage === language;
                 }
             }
             
@@ -312,6 +326,11 @@ class BBHCTheater {
         // Set IMDB link
         const imdbLink = document.getElementById('modalImdbLink');
         imdbLink.href = `https://www.imdb.com/title/${item.imdb_id}/`;
+
+        // Set Download link
+        const downloadLink = document.getElementById('modalDownloadLink');
+        downloadLink.href = item.streaming_url;
+        downloadLink.setAttribute('download', `${item.title.replace(/\s+/g, '_')}.mp4`);
         
         // Show modal
         const modal = document.getElementById('detailModal');
