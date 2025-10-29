@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BBHC Theatre - Stream Movies & Series</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-film"></i> BBHC Theatre</h2>
+            <button class="close-btn" id="closeSidebar">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="sidebar-content">
+            <div class="nav-section">
+                <h3>Browse</h3>
+                <ul>
+                    <li><a href="#" data-filter="all" class="nav-link active">All Content</a></li>
+                    <li><a href="#" data-filter="movies" class="nav-link">Movies</a></li>
+                    <li><a href="#" data-filter="series" class="nav-link">Series</a></li>
+                </ul>
+            </div>
+            <div class="nav-section">
+                <h3>Genres</h3>
+                <ul>
+                    <li><a href="#" data-filter="genre-action" class="nav-link">Action</a></li>
+                    <li><a href="#" data-filter="genre-thriller" class="nav-link">Thriller</a></li>
+                    <li><a href="#" data-filter="genre-comedy" class="nav-link">Comedy</a></li>
+                    <li><a href="#" data-filter="genre-drama" class="nav-link">Drama</a></li>
+                    <li><a href="#" data-filter="genre-horror" class="nav-link">Horror</a></li>
+                    <li><a href="#" data-filter="genre-sci-fi" class="nav-link">Sci-Fi</a></li>
+                </ul>
+            </div>
+            <div class="nav-section">
+                <h3>Years</h3>
+                <ul>
+                    <li><a href="#" data-filter="year-2024" class="nav-link">2024</a></li>
+                    <li><a href="#" data-filter="year-2023" class="nav-link">2023</a></li>
+                    <li><a href="#" data-filter="year-2022" class="nav-link">2022</a></li>
+                    <li><a href="#" data-filter="year-2021" class="nav-link">2021</a></li>
+                </ul>
+            </div>
+            <div class="nav-section">
+                <h3>Languages</h3>
+                <ul>
+                    <li><a href="#" data-filter="language-english" class="nav-link">English</a></li>
+                    <li><a href="#" data-filter="language-hindi" class="nav-link">Hindi</a></li>
+                    <li><a href="#" data-filter="language-korean" class="nav-link">Korean</a></li>
+                    <li><a href="#" data-filter="language-spanish" class="nav-link">Spanish</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Overlay for sidebar -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="hamburger-btn" id="hamburgerBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="logo">
+                    <i class="fas fa-film"></i>
+                    <span>BBHC Theatre</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="search-container">
+                    <input type="text" id="searchInput" placeholder="Search movies & series..." class="search-input">
+                    <button class="search-btn" id="searchBtn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <main class="content-area">
+            <!-- Hero Section -->
+            <section class="hero-section" id="heroSection">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        <span class="welcome-text">Welcome to</span>
+                        <span class="theatre-text">BBHC Theatre</span>
+                    </h1>
+                    <p class="hero-description">Stream unlimited movies and series in stunning quality</p>
+                </div>
+            </section>
+
+            <!-- Current Category Title -->
+            <div class="category-header">
+                <h2 id="categoryTitle">All Content</h2>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content-grid" id="contentGrid">
+                <!-- Skeleton loaders will be shown initially -->
+            </div>
+
+            <!-- No Results Message -->
+            <div class="no-results" id="noResults" style="display: none;">
+                <i class="fas fa-film"></i>
+                <h3>No content found</h3>
+                <p>Try adjusting your search or filter</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal" id="detailModal">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="modal-body">
+                <div class="modal-poster">
+                    <img id="modalPoster" src="" alt="Poster">
+                </div>
+                <div class="modal-info">
+                    <h1 id="modalTitle"></h1>
+                    <div class="modal-meta">
+                        <span class="meta-item">
+                            <i class="fas fa-star"></i>
+                            <span id="modalRating"></span>
+                        </span>
+                        <span class="meta-item" id="modalYear"></span>
+                        <span class="meta-item" id="modalType"></span>
+                    </div>
+                    <div class="modal-genres" id="modalGenres"></div>
+                    <div class="modal-description">
+                        <h3>Synopsis</h3>
+                        <p id="modalDescription"></p>
+                    </div>
+                    <div class="modal-cast">
+                        <h3>Cast</h3>
+                        <p id="modalCast"></p>
+                    </div>
+                    <div class="modal-actions">
+                        <a href="#" id="modalImdbLink" class="imdb-link" target="_blank" rel="noopener noreferrer">
+                            <i class="fab fa-imdb"></i> View on IMDB
+                        </a>
+                        <a href="#" id="modalDownloadLink" class="download-link" download>
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                    <button class="stream-btn" id="streamBtn">
+                        <i class="fas fa-play"></i> Start Streaming
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Player Modal -->
+    <div class="player-modal" id="playerModal">
+        <div class="player-overlay" id="playerOverlay"></div>
+        <div class="player-container">
+            <div class="player-header">
+                <h3 id="playerTitle"></h3>
+                <button class="player-close" id="playerClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="player-wrapper">
+                <video id="videoPlayer" class="video-player" controls playsinline webkit-playsinline>
+                    <source id="videoSource" src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="player-loading" id="playerLoading">
+                    <div class="spinner"></div>
+                    <p>Loading content...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/data.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/telegram.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

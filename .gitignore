@@ -1,0 +1,46 @@
+# Environment Variables
+.env
+
+# Telegram Session Files
+*.session
+*.session-journal
+
+# Authentication Session Files
+auth_session.json
+admin_*.session
+admin_*.session-journal
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+myenv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
