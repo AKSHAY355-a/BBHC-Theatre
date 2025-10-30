@@ -217,7 +217,7 @@ class BBHCTheatre {
                     id: `search-${index}`,
                     title: result.title,
                     description: `Click to stream this movie`,
-                    thumbnail: 'https://via.placeholder.com/300x450/141414/e50914?text=' + encodeURIComponent(result.title),
+                    thumbnail: 'https://placehold.co/300x450/141414/e50914?text=' + encodeURIComponent(result.title),
                     year: new Date().getFullYear(),
                     rating: '⭐',
                     genre: ['Movie'],
@@ -302,13 +302,13 @@ class BBHCTheatre {
         
         const type = item.is_series ? 'Series' : 'Movie';
         
-        const posterUrl = item.poster_url || item.thumbnail || 'https://via.placeholder.com/300x450/141414/e50914?text=' + encodeURIComponent(item.title);
+        const posterUrl = item.poster_url || item.thumbnail || 'https://placehold.co/300x450/141414/e50914?text=' + encodeURIComponent(item.title);
         const rating = item.imdb_rating || item.rating || 'N/A';
         
         return `
             <div class="content-card" data-id="${item.id}">
                 <div class="card-poster">
-                    <img src="${posterUrl}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/300x450/141414/e50914?text=No+Image'">
+                    <img src="${posterUrl}" alt="${item.title}" onerror="this.src='https://placehold.co/300x450/141414/e50914?text=No+Image'">
                     <div class="card-rating">
                         <i class="fas fa-star"></i>
                         <span>${rating}</span>
@@ -330,19 +330,25 @@ class BBHCTheatre {
     }
 
     showDetailModal(contentId) {
-        const item = this.allContent.find(c => c.id === contentId);
+        // Prefer the currently rendered items (search results) first
+        let item = (this.filteredContent || []).find(c => c.id === contentId);
+        if (!item) {
+            item = (this.allContent || []).find(c => c.id === contentId);
+        }
         if (!item) return;
         
         this.currentContentItem = item;
         
         // Populate modal
-        document.getElementById('modalPoster').src = item.poster_url;
-        document.getElementById('modalTitle').textContent = item.title;
-        document.getElementById('modalRating').textContent = item.imdb_rating;
-        document.getElementById('modalYear').textContent = item.year;
+        const fallbackPoster = 'https://placehold.co/300x450/141414/e50914?text=' + encodeURIComponent(item.title || 'No Image');
+        document.getElementById('modalPoster').src = item.poster_url || item.thumbnail || fallbackPoster;
+        document.getElementById('modalTitle').textContent = item.title || 'Unknown Title';
+        document.getElementById('modalRating').textContent = (item.imdb_rating != null ? item.imdb_rating : (item.rating != null ? item.rating : 'N/A'));
+        document.getElementById('modalYear').textContent = item.year != null ? item.year : '';
         document.getElementById('modalType').textContent = item.is_series ? 'Series' : 'Movie';
-        document.getElementById('modalDescription').textContent = item.description;
-        document.getElementById('modalCast').textContent = item.cast.join(', ');
+        document.getElementById('modalDescription').textContent = item.description || 'No description available.';
+        const castArray = Array.isArray(item.cast) ? item.cast : [];
+        document.getElementById('modalCast').textContent = castArray.join(', ');
         
         // Render genres
         const genresHTML = item.genre.map(g => 
@@ -352,12 +358,24 @@ class BBHCTheatre {
         
         // Set IMDB link
         const imdbLink = document.getElementById('modalImdbLink');
-        imdbLink.href = `https://www.imdb.com/title/${item.imdb_id}/`;
+        imdbLink.href = item && item.imdb_id ? `https://www.imdb.com/title/${item.imdb_id}/` : 'https://www.imdb.com/';
 
         // Set Download link
         const downloadLink = document.getElementById('modalDownloadLink');
-        downloadLink.href = item.streaming_url;
-        downloadLink.setAttribute('download', `${item.title.replace(/\s+/g, '_')}.mp4`);
+        if (item.message_id !== undefined && item.row !== undefined && item.col !== undefined) {
+            const params = new URLSearchParams({
+                message_id: String(item.message_id),
+                row: String(item.row),
+                col: String(item.col)
+            });
+            downloadLink.href = `/api/download?${params.toString()}`;
+            downloadLink.removeAttribute('download');
+        } else if (item.streaming_url) {
+            downloadLink.href = item.streaming_url;
+            downloadLink.setAttribute('download', `${item.title.replace(/\s+/g, '_')}.mp4`);
+        } else {
+            downloadLink.href = '#';
+        }
         
         // Show modal
         const modal = document.getElementById('detailModal');

@@ -8,13 +8,17 @@ import os
 import re
 import threading
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
 from flask_cors import CORS
 from functools import wraps
 from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError
+from telethon.errors.rpcerrorlist import AuthRestartError
 from config import API_ID, API_HASH, SEARCH_BOT_USERNAME, STREAMING_BOT_USERNAME
 import nest_asyncio
+import tempfile
+import os as _os
+from typing import Optional
 
 # Apply nest_asyncio globally
 nest_asyncio.apply()
@@ -120,13 +124,38 @@ def send_otp():
     async def send_code():
         client = TelegramClient(session_name, api_id, api_hash)
         try:
-            await client.connect()
-            # Always send OTP code for login
-            result = await client.send_code_request(phone_number)
-            phone_code_hash = result.phone_code_hash
-            return phone_code_hash
+            # Ensure connection established
+            for _ in range(3):
+                await client.connect()
+                if client.is_connected():
+                    break
+                await asyncio.sleep(0.5)
+
+            # Retry sending code on transient Telegram errors
+            last_err = None
+            for _ in range(3):
+                try:
+                    result = await client.send_code_request(phone_number)
+                    phone_code_hash = result.phone_code_hash
+                    return phone_code_hash
+                except (ConnectionError, AuthRestartError) as e:  # type: ignore[misc]
+                    last_err = e
+                    # Reconnect and retry
+                    try:
+                        if client.is_connected():
+                            await client.disconnect()
+                    except Exception:
+                        pass
+                    await asyncio.sleep(1.0)
+                    await client.connect()
+                except Exception as e:
+                    last_err = e
+                    break
+            if last_err:
+                raise last_err
         finally:
-            await client.disconnect()
+            if client.is_connected():
+                await client.disconnect()
     
     try:
         with telegram_lock:
@@ -328,6 +357,119 @@ def get_stream_link():
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed: {str(e)}'}), 500
+
+@app.route('/api/download', methods=['GET'])
+@login_required
+def download_media():
+    message_id = request.args.get('message_id', type=int)
+    row = request.args.get('row', type=int)
+    col = request.args.get('col', type=int)
+
+    if message_id is None or row is None or col is None:
+        return jsonify({'error': 'Missing required parameters'}), 400
+
+    async def fetch_and_download():
+        phone = session.get('phone')
+        session_name = f"admin_{phone.replace('+', '').replace(' ', '')}"
+        client = TelegramClient(session_name, api_id, api_hash)
+
+        try:
+            await client.connect()
+            if not await client.is_user_authorized():
+                await client.start()
+
+            msg = await client.get_messages(bot_username, ids=message_id)
+            if msg and hasattr(msg, 'buttons'):
+                # Click the requested button. Some bots respond with edited message, new message, or URL.
+                click_result = None
+                try:
+                    click_result = await msg.click(i=row, j=col)
+                except Exception:
+                    pass
+
+                # Handle URL deep-links like t.me/bot?start=XXXX by sending /start payload back to the bot
+                try:
+                    url = getattr(click_result, 'url', None)
+                    if url and 'start=' in url:
+                        start_payload = '/start ' + url.split('start=')[-1]
+                        await client.send_message(bot_username, start_payload)
+                except Exception:
+                    pass
+
+                # Poll for a media message from the bot after clicking
+                media_msg: Optional[object] = None
+                for _ in range(10):  # ~10 seconds total
+                    messages = await client.get_messages(bot_username, limit=20)
+                    for m in messages:
+                        if getattr(m, 'document', None) or getattr(m, 'video', None) or getattr(m, 'audio', None):
+                            media_msg = m
+                            break
+                    if media_msg:
+                        break
+                    await asyncio.sleep(1)
+
+                # As a fallback, try to refresh the original message and scan again
+                if not media_msg:
+                    try:
+                        refreshed = await client.get_messages(bot_username, ids=message_id)
+                        if refreshed:
+                            messages = await client.get_messages(bot_username, limit=30)
+                            for m in messages:
+                                if getattr(m, 'document', None) or getattr(m, 'video', None) or getattr(m, 'audio', None):
+                                    media_msg = m
+                                    break
+                    except Exception:
+                        pass
+
+                if not media_msg:
+                    return None, None
+
+                # Determine filename
+                filename = None
+                if getattr(media_msg, 'document', None) and getattr(media_msg.document, 'attributes', None):
+                    for attr in media_msg.document.attributes:
+                        name = getattr(attr, 'file_name', None)
+                        if name:
+                            filename = name
+                            break
+
+                if not filename:
+                    filename = (media_msg.file and getattr(media_msg.file, 'name', None)) or 'movie.mp4'
+
+                # Download to a temporary file
+                tmp_dir = tempfile.gettempdir()
+                safe_name = re.sub(r"[^A-Za-z0-9._-]", '_', filename)
+                tmp_path = _os.path.join(tmp_dir, f"bbhc_{safe_name}")
+
+                await client.download_media(media_msg, file=tmp_path)
+                return tmp_path, safe_name
+            return None, None
+        finally:
+            await client.disconnect()
+
+    try:
+        with telegram_lock:
+            tmp_path, safe_name = asyncio.run(fetch_and_download())
+
+        if not tmp_path or not _os.path.exists(tmp_path):
+            return jsonify({'error': 'Failed to fetch media from Telegram'}), 500
+
+        # Serve file as attachment; cleanup after request
+        response = send_file(tmp_path, as_attachment=True, download_name=safe_name)
+
+        @response.call_on_close
+        def _cleanup_file():
+            try:
+                if _os.path.exists(tmp_path):
+                    _os.remove(tmp_path)
+            except Exception:
+                pass
+
+        return response
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Download failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
