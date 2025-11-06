@@ -1,5 +1,6 @@
 # Environment Variables
 .env
+.env.example
 # Telegram Session Files
 *.session
 *.session-journal
