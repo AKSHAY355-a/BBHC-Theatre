@@ -360,6 +360,7 @@ class BBHCTheatre {
         const videoSource = document.getElementById('videoSource');
         
         playerTitle.textContent = this.currentContentItem.title;
+        playerTitle.title = this.currentContentItem.title; // Add tooltip for full title
         playerModal.classList.add('active');
         playerLoading.classList.remove('hidden');
         videoPlayer.style.display = 'none';
