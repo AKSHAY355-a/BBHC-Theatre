@@ -16,8 +16,11 @@ API_HASH = os.getenv("API_HASH", "b38ca5e47129f33da3b4d2dcb5700aa0")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 SEARCH_BOT_USERNAME = os.getenv("SEARCH_BOT_USERNAME", "TheProSearchBot")
 
-# Streaming bot configuration
+# Streaming bot configuration (optional - not needed for RedMoon)
 STREAMING_BOT_USERNAME = os.getenv("STREAMING_BOT_USERNAME")
+
+# RedMoon Stream server URL
+REDMOON_STREAM_URL = os.getenv("REDMOON_STREAM_URL", "http://localhost:8000")
 
 # Domain for public streaming links
 DOMAIN = os.getenv("DOMAIN", "http://localhost:8000")

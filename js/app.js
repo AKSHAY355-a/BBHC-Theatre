@@ -8,16 +8,19 @@ class BBHCTheatre {
         this.currentCategory = 'all';
         this.searchQuery = '';
         this.currentContentItem = null;
+        this.selectedQualityIndex = 0;
+        this.searchTimeout = null;
+        
+        // Backend API configuration
+        this.API_BASE_URL = 'http://localhost:5000';
+        this.USE_BACKEND = true; // Set to false to use mock data
+        this.USE_BACKEND_ON_STARTUP = false; // Load local data first
         
         this.init();
     }
 
     async init() {
-    console.log('[BBHC] Initializing theatre...');
-        
-        // Load content from database
-        this.allContent = window.contentDatabase || [];
-        this.filteredContent = [...this.allContent];
+        console.log('[BBHC] Initializing theatre...');
         
         // Set up event listeners
         this.setupEventListeners();
@@ -25,13 +28,21 @@ class BBHCTheatre {
         // Show skeleton loaders initially
         this.showSkeletonLoaders();
         
-        // Simulate loading delay for smooth UX
-        await this.delay(800);
+        // Load initial content from local data.js
+        this.allContent = window.contentDatabase || [];
+        this.filteredContent = [...this.allContent];
         
-        // Render initial content
-        this.renderContent();
+        if (this.allContent.length > 0) {
+            console.log(`[BBHC] Loaded ${this.allContent.length} movies from local database`);
+            await this.delay(500);
+            this.renderContent();
+            this.updateCategoryTitle('Featured Movies');
+        } else {
+            console.log('[BBHC] No local content found');
+            this.showError('No content available. Use search to find movies.');
+        }
         
-    console.log('[BBHC] ✓ Theatre ready');
+        console.log('[BBHC] ✓ Theatre ready');
     }
 
     setupEventListeners() {
@@ -60,21 +71,39 @@ class BBHCTheatre {
             });
         });
 
-        // Search functionality
+        // Search functionality with debounce
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
 
         searchInput.addEventListener('input', (e) => {
             this.searchQuery = e.target.value.toLowerCase().trim();
-            this.performSearch();
+            
+            // Clear previous timeout
+            if (this.searchTimeout) {
+                clearTimeout(this.searchTimeout);
+            }
+            
+            // Wait 500ms after user stops typing before searching
+            this.searchTimeout = setTimeout(() => {
+                console.log('[BBHC] Search triggered after delay');
+                this.performSearch();
+            }, 500);
         });
 
         searchBtn.addEventListener('click', () => {
-            searchInput.focus();
+            // Immediate search on button click
+            if (this.searchTimeout) {
+                clearTimeout(this.searchTimeout);
+            }
+            this.performSearch();
         });
 
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
+                // Immediate search on Enter key
+                if (this.searchTimeout) {
+                    clearTimeout(this.searchTimeout);
+                }
                 this.performSearch();
             }
         });
@@ -168,54 +197,90 @@ class BBHCTheatre {
         }
     }
 
-    performSearch() {
+    async performSearch() {
         console.log(`[BBHC] Searching: ${this.searchQuery}`);
         
-        if (!this.searchQuery) {
-            this.filteredContent = [...this.allContent];
-            this.updateCategoryTitle('All Content');
-            this.renderContent();
-            return;
-        }
-        
-        // Show skeleton loaders
-        this.showSkeletonLoaders();
-        
-        // Search in title and description
-        this.filteredContent = this.allContent.filter(item => {
-            const matchesSearch = 
-                item.title.toLowerCase().includes(this.searchQuery) ||
-                item.description.toLowerCase().includes(this.searchQuery);
-            
-            // Also apply category filter if active
-            let matchesCategory = true;
-            if (this.currentCategory !== 'all') {
-                if (this.currentCategory === 'movies') {
-                    matchesCategory = !item.is_series;
-                } else if (this.currentCategory === 'series') {
-                    matchesCategory = item.is_series;
-                } else if (this.currentCategory.startsWith('genre-')) {
-                    const genre = this.currentCategory.replace('genre-', '').replace('-', ' ');
-                    matchesCategory = item.genre.some(g => 
-                        g.toLowerCase() === genre.toLowerCase()
-                    );
-                } else if (this.currentCategory.startsWith('year-')) {
-                    const year = parseInt(this.currentCategory.replace('year-', ''));
-                    matchesCategory = item.year === year;
-                } else if (this.currentCategory.startsWith('language-')) {
-                    const language = this.currentCategory.replace('language-', '').toLowerCase();
-                    const itemLanguage = (item.language || 'english').toLowerCase();
-                    matchesCategory = itemLanguage === language;
+        if (this.USE_BACKEND && this.searchQuery) {
+            // Search via backend API
+            await this.performBackendSearch(this.searchQuery);
+        } else {
+            // Filter local content
+            this.filteredContent = this.allContent.filter(item => {
+                const matchesSearch = !this.searchQuery || 
+                    item.title.toLowerCase().includes(this.searchQuery) ||
+                    (item.description && item.description.toLowerCase().includes(this.searchQuery));
+                
+                let matchesCategory = true;
+                if (this.currentCategory !== 'all') {
+                    if (this.currentCategory === 'movies') {
+                        matchesCategory = !item.is_series;
+                    } else if (this.currentCategory === 'series') {
+                        matchesCategory = item.is_series;
+                    } else if (this.currentCategory.startsWith('genre-')) {
+                        const genre = this.currentCategory.replace('genre-', '');
+                        matchesCategory = item.genre && item.genre.some(g => 
+                            g.toLowerCase() === genre.toLowerCase()
+                        );
+                    } else if (this.currentCategory.startsWith('year-')) {
+                        const year = parseInt(this.currentCategory.replace('year-', ''));
+                        matchesCategory = item.year === year;
+                    } else if (this.currentCategory.startsWith('language-')) {
+                        const language = this.currentCategory.replace('language-', '').toLowerCase();
+                        const itemLanguage = (item.language || 'english').toLowerCase();
+                        matchesCategory = itemLanguage === language;
+                    }
                 }
+                
+                return matchesSearch && matchesCategory;
+            });
+            
+            this.updateCategoryTitle(`Search: "${this.searchQuery}"`);
+            setTimeout(() => this.renderContent(), 400);
+        }
+    }
+
+    async performBackendSearch(query) {
+        try {
+            this.showSkeletonLoaders();
+            this.updateCategoryTitle(`Searching for "${query}"...`);
+            
+            const startTime = Date.now();
+            const response = await fetch(`${this.API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`);
+            
+            if (!response.ok) {
+                throw new Error(`Search failed: ${response.statusText}`);
             }
             
-            return matchesSearch && matchesCategory;
-        });
-        
-        this.updateCategoryTitle(`Search: "${this.searchQuery}"`);
-        
-        // Simulate loading delay
-        setTimeout(() => this.renderContent(), 400);
+            const data = await response.json();
+            const searchTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            
+            // Transform backend results to match frontend format
+            this.allContent = data.results.map(item => ({
+                id: item.id,
+                title: item.title,
+                poster_url: item.poster_url || 'https://via.placeholder.com/300x450?text=No+Poster',
+                year: item.year || 2024,
+                genre: item.genre || ['Unknown'],
+                imdb_rating: item.imdb_rating || 'N/A',
+                description: item.snippet || 'No description available',
+                is_series: false,
+                qualities: item.qualities || [],
+                message_chat_id: item.message_chat_id,
+                message_id: item.message_id,
+                cast: ['Cast information not available'],
+                imdb_id: 'tt0000000'
+            }));
+            
+            this.filteredContent = [...this.allContent];
+            this.updateCategoryTitle(`Found ${data.total} results for "${query}" (${searchTime}s)`);
+            this.renderContent();
+            
+            console.log(`[BBHC] Found ${data.total} results from backend in ${searchTime}s`);
+        } catch (error) {
+            console.error('[BBHC] Backend search failed:', error);
+            this.updateCategoryTitle(`Search failed for "${query}"`);
+            this.showError('Search failed. Please try again.');
+        }
     }
 
     updateCategoryTitle(title) {
@@ -272,19 +337,25 @@ class BBHCTheatre {
     }
 
     createContentCard(item) {
-        const genres = item.genre.slice(0, 2).map(g => 
+        const genres = (item.genre || []).slice(0, 2).map(g => 
             `<span class="genre-tag">${g}</span>`
         ).join('');
         
         const type = item.is_series ? 'Series' : 'Movie';
+        const rating = item.imdb_rating || 'N/A';
+        
+        // Show quality badges if available
+        const qualityBadges = (item.qualities || []).slice(0, 3).map(q => 
+            `<span class="quality-badge">${q.label}</span>`
+        ).join('');
         
         return `
             <div class="content-card" data-id="${item.id}">
                 <div class="card-poster">
-                    <img src="${item.poster_url}" alt="${item.title}">
+                    <img src="${item.poster_url}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/300x450/1a1a1a/e50914?text=${encodeURIComponent(item.title)}'">
                     <div class="card-rating">
                         <i class="fas fa-star"></i>
-                        <span>${item.imdb_rating}</span>
+                        <span>${rating}</span>
                     </div>
                 </div>
                 <div class="card-info">
@@ -297,6 +368,7 @@ class BBHCTheatre {
                     <div class="card-genres">
                         ${genres}
                     </div>
+                    ${qualityBadges ? `<div class="card-qualities">${qualityBadges}</div>` : ''}
                 </div>
             </div>
         `;
@@ -309,28 +381,48 @@ class BBHCTheatre {
         this.currentContentItem = item;
         
         // Populate modal
-        document.getElementById('modalPoster').src = item.poster_url;
+        const modalPoster = document.getElementById('modalPoster');
+        modalPoster.src = item.poster_url;
+        modalPoster.onerror = function() {
+            this.src = 'https://via.placeholder.com/300x450/1a1a1a/e50914?text=' + encodeURIComponent(item.title);
+        };
         document.getElementById('modalTitle').textContent = item.title;
-        document.getElementById('modalRating').textContent = item.imdb_rating;
+        document.getElementById('modalRating').textContent = item.imdb_rating || 'N/A';
         document.getElementById('modalYear').textContent = item.year;
         document.getElementById('modalType').textContent = item.is_series ? 'Series' : 'Movie';
-        document.getElementById('modalDescription').textContent = item.description;
-        document.getElementById('modalCast').textContent = item.cast.join(', ');
+        document.getElementById('modalDescription').textContent = item.description || item.snippet || 'No description available';
+        document.getElementById('modalCast').textContent = (item.cast || []).join(', ') || 'Cast information not available';
         
         // Render genres
-        const genresHTML = item.genre.map(g => 
+        const genresHTML = (item.genre || []).map(g => 
             `<span class="modal-genre-tag">${g}</span>`
         ).join('');
-        document.getElementById('modalGenres').innerHTML = genresHTML;
+        document.getElementById('modalGenres').innerHTML = genresHTML || '<span class="modal-genre-tag">Unknown</span>';
         
         // Set IMDB link
         const imdbLink = document.getElementById('modalImdbLink');
-        imdbLink.href = `https://www.imdb.com/title/${item.imdb_id}/`;
+        imdbLink.href = `https://www.imdb.com/title/${item.imdb_id || 'tt0000000'}/`;
 
-        // Set Download link
-        const downloadLink = document.getElementById('modalDownloadLink');
-        downloadLink.href = item.streaming_url;
-        downloadLink.setAttribute('download', `${item.title.replace(/\s+/g, '_')}.mp4`);
+        // Render quality options if available
+        if (item.qualities && item.qualities.length > 0) {
+            const qualitiesHTML = item.qualities.map((q, index) => 
+                `<button class="quality-btn ${index === 0 ? 'active' : ''}" data-index="${index}">${q.label}</button>`
+            ).join('');
+            
+            const qualityContainer = document.getElementById('modalQualities');
+            if (qualityContainer) {
+                qualityContainer.innerHTML = qualitiesHTML;
+                
+                // Add click handlers for quality buttons
+                qualityContainer.querySelectorAll('.quality-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        qualityContainer.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.selectedQualityIndex = parseInt(e.target.dataset.index);
+                    });
+                });
+            }
+        }
         
         // Show modal
         const modal = document.getElementById('detailModal');
@@ -360,28 +452,121 @@ class BBHCTheatre {
         const videoSource = document.getElementById('videoSource');
         
         playerTitle.textContent = this.currentContentItem.title;
-        playerTitle.title = this.currentContentItem.title; // Add tooltip for full title
+        playerTitle.title = this.currentContentItem.title;
         playerModal.classList.add('active');
         playerLoading.classList.remove('hidden');
         videoPlayer.style.display = 'none';
         
         try {
-            // Resolve streaming URL via Telegram
-            const streamingUrl = await window.telegramLoader.resolveStreamingUrl(
-                this.currentContentItem.id,
-                this.currentContentItem
-            );
-            
-            // Load video
-            videoSource.src = streamingUrl;
-            videoPlayer.load();
-            
-            console.log('[BBHC] ✓ Stream loaded successfully');
+            if (this.USE_BACKEND) {
+                // Request stream from backend
+                const streamUrl = await this.requestStreamFromBackend(
+                    this.currentContentItem.id,
+                    this.selectedQualityIndex
+                );
+                
+                // Load video
+                videoSource.src = streamUrl;
+                videoPlayer.load();
+                
+                console.log('[BBHC] ✓ Stream loaded successfully');
+            } else {
+                // Use mock streaming URL
+                const streamingUrl = await window.telegramLoader.resolveStreamingUrl(
+                    this.currentContentItem.id,
+                    this.currentContentItem
+                );
+                
+                videoSource.src = streamingUrl;
+                videoPlayer.load();
+            }
             
         } catch (error) {
             console.error('[BBHC] Stream loading failed:', error);
             this.handleStreamError(error);
         }
+    }
+    
+    async requestStreamFromBackend(itemId, qualityIndex) {
+        try {
+            // Update loading message
+            const playerLoading = document.getElementById('playerLoading');
+            playerLoading.innerHTML = `
+                <div class="spinner"></div>
+                <p>Requesting stream...</p>
+            `;
+            
+            // Request stream
+            const response = await fetch(`${this.API_BASE_URL}/api/stream`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    item_id: itemId,
+                    quality_index: qualityIndex
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Stream request failed: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            const jobId = data.job_id;
+            
+            console.log(`[BBHC] Stream job created: ${jobId}`);
+            
+            // Poll for job completion
+            return await this.pollStreamJob(jobId);
+            
+        } catch (error) {
+            console.error('[BBHC] Stream request failed:', error);
+            throw error;
+        }
+    }
+    
+    async pollStreamJob(jobId) {
+        const maxAttempts = 60; // 60 seconds max
+        let attempts = 0;
+        
+        while (attempts < maxAttempts) {
+            try {
+                const response = await fetch(`${this.API_BASE_URL}/api/job/${jobId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Job status check failed: ${response.statusText}`);
+                }
+                
+                const job = await response.json();
+                
+                // Update loading message with progress
+                const playerLoading = document.getElementById('playerLoading');
+                playerLoading.innerHTML = `
+                    <div class="spinner"></div>
+                    <p>${job.progress || 'Processing...'}</p>
+                `;
+                
+                if (job.status === 'done' && job.stream_url) {
+                    console.log('[BBHC] Stream ready:', job.stream_url);
+                    return job.stream_url;
+                }
+                
+                if (job.status === 'failed') {
+                    throw new Error(job.error || 'Stream job failed');
+                }
+                
+                // Wait 1 second before next poll
+                await this.delay(1000);
+                attempts++;
+                
+            } catch (error) {
+                console.error('[BBHC] Job polling error:', error);
+                throw error;
+            }
+        }
+        
+        throw new Error('Stream request timed out');
     }
 
     onVideoLoaded() {
@@ -411,13 +596,48 @@ class BBHCTheatre {
     handleStreamError(error) {
         const playerLoading = document.getElementById('playerLoading');
         
+        // Check if it's a streaming bot configuration error
+        const errorMsg = error.message || error.toString() || 'Unable to load content';
+        const isConfigError = errorMsg.includes('Streaming bot not configured') || errorMsg.includes('STREAMING_BOT_USERNAME');
+        
+        let helpText = '';
+        if (isConfigError) {
+            helpText = `
+                <div style="margin-top: 20px; padding: 15px; background: rgba(229, 9, 20, 0.1); border-radius: 8px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto;">
+                    <h4 style="margin: 0 0 10px 0; color: var(--accent-primary);">⚙️ Setup Required</h4>
+                    <p style="margin: 0 0 10px 0; font-size: 14px;">To enable streaming, you need to configure a streaming bot:</p>
+                    <ol style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6;">
+                        <li>Search for <strong>@TG_FileStreamBot</strong> on Telegram</li>
+                        <li>Start the bot and test it with any video file</li>
+                        <li>Create a <code>.env</code> file with: <code>STREAMING_BOT_USERNAME=TG_FileStreamBot</code></li>
+                        <li>Restart the backend server</li>
+                    </ol>
+                    <p style="margin: 10px 0 0 0; font-size: 12px; color: var(--text-secondary);">
+                        See <strong>STREAMING_SETUP.md</strong> for detailed instructions.
+                    </p>
+                </div>
+            `;
+        }
+        
         playerLoading.innerHTML = `
             <i class="fas fa-exclamation-circle" style="font-size: 48px; color: var(--accent-primary);"></i>
             <h3 style="margin: 16px 0 8px 0;">${error.error_code || 'Stream Error'}</h3>
-            <p>${error.message || 'Unable to load content'}</p>
+            <p style="max-width: 600px; margin: 0 auto 10px;">${errorMsg}</p>
+            ${helpText}
             <button onclick="theater.closePlayer()" style="margin-top: 20px; padding: 12px 24px; background: var(--accent-primary); border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 14px; font-weight: 600;">
                 Close Player
             </button>
+        `;
+    }
+    
+    showError(message) {
+        const contentGrid = document.getElementById('contentGrid');
+        contentGrid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--accent-primary); margin-bottom: 20px;"></i>
+                <h3 style="color: var(--text-primary); margin-bottom: 10px;">Error</h3>
+                <p style="color: var(--text-secondary);">${message}</p>
+            </div>
         `;
     }
 

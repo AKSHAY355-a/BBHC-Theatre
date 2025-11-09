@@ -73,11 +73,11 @@ class BBHCTheatre {
                 clearTimeout(this.searchTimeout);
             }
             
-            // Wait 2 seconds after user stops typing before searching
+            // Wait 500ms after user stops typing before searching (reduced from 2s)
             this.searchTimeout = setTimeout(() => {
                 console.log('[BBHC] Search triggered after delay');
                 this.performSearch();
-            }, 2000);
+            }, 500);
         });
 
         searchBtn.addEventListener('click', () => {
@@ -199,7 +199,7 @@ class BBHCTheatre {
         
         // Show skeleton loaders
         this.showSkeletonLoaders();
-        this.updateCategoryTitle(`Search Results for "${this.searchQuery}"`);
+        this.updateCategoryTitle(`Searching for "${this.searchQuery}"...`);
         
         try {
             // Call Flask API to search movies
@@ -229,17 +229,20 @@ class BBHCTheatre {
                 }));
                 
                 console.log(`[BBHC] Found ${this.filteredContent.length} results`);
+                this.updateCategoryTitle(`Found ${this.filteredContent.length} results for "${this.searchQuery}"`);
             } else {
                 console.error('[BBHC] Search failed:', data.error);
                 this.filteredContent = [];
+                this.updateCategoryTitle(`No results for "${this.searchQuery}"`);
             }
         } catch (error) {
             console.error('[BBHC] Search error:', error);
             this.filteredContent = [];
+            this.updateCategoryTitle(`Search failed for "${this.searchQuery}"`);
         }
         
-        // Render results
-        setTimeout(() => this.renderContent(), 400);
+        // Render results immediately (removed artificial delay)
+        this.renderContent();
     }
 
     updateCategoryTitle(title) {
